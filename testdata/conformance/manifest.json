@@ -1,0 +1,11 @@
+{
+  "revision": 1,
+  "scenarios": [
+    {"id": "CONF-01", "gherkin": "Valid three-node fan-out/fan-in DAG completes with dependency order", "fixture": "valid-three-node.json", "expect": "valid"},
+    {"id": "CONF-02", "gherkin": "Cyclic graph is rejected naming the cycle", "fixture": "invalid-cycle.json", "expect": "cycle detected"},
+    {"id": "CONF-03", "gherkin": "Dangling dependency reference is rejected", "fixture": "invalid-dangling.json", "expect": "unknown node"},
+    {"id": "CONF-04", "gherkin": "Duplicate node id is rejected", "fixture": "invalid-duplicate-id.json", "expect": "duplicate id"},
+    {"id": "CONF-05", "gherkin": "Node count above maxNodes is rejected", "fixture": "invalid-over-cap.json", "expect": "exceeds maxNodes"},
+    {"id": "CONF-06", "gherkin": "Missing model everywhere is rejected", "fixture": "invalid-no-model.json", "expect": "no model and no defaultModel"}
+  ]
+}

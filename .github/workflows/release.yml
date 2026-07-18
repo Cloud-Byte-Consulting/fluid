@@ -1,0 +1,54 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: darwin,  goarch: arm64 }
+          - { goos: darwin,  goarch: amd64 }
+          - { goos: linux,   goarch: amd64 }
+          - { goos: linux,   goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./... -race -count=1
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+      - name: build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          ext=""
+          [ "$GOOS" = "windows" ] && ext=".exe"
+          out="flow-mcp_${GITHUB_REF_NAME}_${GOOS}_${GOARCH}${ext}"
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${GITHUB_REF_NAME} -X main.commit=${GITHUB_SHA::7}" \
+            -o "$out" ./cmd/flow-mcp
+          shasum -a 256 "$out" > "$out.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flow-mcp-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: flow-mcp_*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: flow-mcp_*

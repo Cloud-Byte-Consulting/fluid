@@ -1,0 +1,63 @@
+{
+  "version": "1",
+  "name": "conformance-review",
+  "defaultModel": "anthropic:claude-sonnet-4",
+  "caps": {
+    "maxNodes": 5,
+    "maxRounds": 2,
+    "maxConcurrent": 2,
+    "tokenBudget": 50000
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "instructions": "Review the auth module for concurrency bugs.",
+      "dependsOn": [
+        "c"
+      ]
+    },
+    {
+      "id": "b",
+      "instructions": "Review the api module for input validation gaps."
+    },
+    {
+      "id": "c",
+      "instructions": "Synthesize both reviews into a ranked findings list.",
+      "dependsOn": [
+        "a",
+        "b"
+      ],
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "findings"
+        ],
+        "properties": {
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "severity",
+                "title"
+              ],
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

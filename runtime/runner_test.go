@@ -35,22 +35,23 @@ func newCountingExec() *countingExec {
 	return &countingExec{counts: map[string]int{}, failing: map[string]bool{}}
 }
 
-func (c *countingExec) run(_ context.Context, nr NodeRun) (json.RawMessage, error) {
+func (c *countingExec) run(_ context.Context, nr NodeRun) (NodeResult, error) {
 	c.mu.Lock()
 	c.counts[nr.Node.ID]++
 	fail := c.failing[nr.Node.ID]
 	c.mu.Unlock()
 	if fail {
-		return nil, errors.New("boom")
+		return NodeResult{}, errors.New("boom")
 	}
-	return json.RawMessage(fmt.Sprintf(`{"from":%q,"inputs":%d}`, nr.Node.ID, len(nr.Inputs))), nil
+	out := json.RawMessage(fmt.Sprintf(`{"from":%q,"inputs":%d}`, nr.Node.ID, len(nr.Inputs)))
+	return NodeResult{Output: out, Tokens: 1}, nil
 }
 
 func TestRunExecutesWavesInOrder(t *testing.T) {
 	ex := newCountingExec()
 	var mu sync.Mutex
 	var order []string
-	r := &Runner{Dir: t.TempDir(), Exec: func(ctx context.Context, nr NodeRun) (json.RawMessage, error) {
+	r := &Runner{Dir: t.TempDir(), Exec: func(ctx context.Context, nr NodeRun) (NodeResult, error) {
 		mu.Lock()
 		order = append(order, nr.Node.ID)
 		mu.Unlock()
@@ -126,7 +127,7 @@ func TestRunRespectsConcurrencyCap(t *testing.T) {
 	d.Caps.MaxConcurrent = 1
 	var mu sync.Mutex
 	inFlight, maxInFlight := 0, 0
-	r := &Runner{Dir: t.TempDir(), Exec: func(ctx context.Context, nr NodeRun) (json.RawMessage, error) {
+	r := &Runner{Dir: t.TempDir(), Exec: func(ctx context.Context, nr NodeRun) (NodeResult, error) {
 		mu.Lock()
 		inFlight++
 		if inFlight > maxInFlight {
@@ -134,7 +135,7 @@ func TestRunRespectsConcurrencyCap(t *testing.T) {
 		}
 		mu.Unlock()
 		defer func() { mu.Lock(); inFlight--; mu.Unlock() }()
-		return json.RawMessage(`{}`), nil
+		return NodeResult{Output: []byte(`{}`)}, nil
 	}}
 	if _, err := r.Run(context.Background(), d, "run4"); err != nil {
 		t.Fatal(err)
