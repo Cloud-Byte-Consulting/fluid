@@ -11,8 +11,12 @@ curl -Lo /usr/local/bin/flow-mcp \
   https://github.com/Cloud-Byte-Consulting/fluid/releases/latest/download/flow-mcp_<tag>_darwin_arm64
 chmod +x /usr/local/bin/flow-mcp
 
-# or from source
-go install github.com/Cloud-Byte-Consulting/fluid/cmd/flow-mcp@latest
+# or from source (Go >= 1.24, no other dependencies; see README "Build from source")
+git clone https://github.com/Cloud-Byte-Consulting/fluid.git && cd fluid
+go build -trimpath \
+  -ldflags "-X main.version=$(git describe --tags --always) -X main.commit=$(git rev-parse --short HEAD)" \
+  -o flow-mcp ./cmd/flow-mcp
+sudo install -m 0755 flow-mcp /usr/local/bin/
 
 flow-mcp version
 ```

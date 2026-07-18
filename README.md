@@ -40,12 +40,9 @@ flowchart LR
 
 ## Install
 
-Download a release binary and put it on your PATH, or build from source:
-
-```bash
-go build -o flow-mcp ./cmd/flow-mcp     # or: go install github.com/Cloud-Byte-Consulting/fluid/cmd/flow-mcp@latest
-flow-mcp version
-```
+Download a release binary and put it on your PATH, or [build from
+source](#build-from-source) (one command — fluid has zero runtime
+dependencies).
 
 Then add it to your harness — model API keys go in the harness's MCP `env`
 block, never in files:
@@ -88,6 +85,45 @@ in the background, so no harness tool timeout is ever at risk.
 Operations: state lives in `~/.fluid` (override: `FLOW_STATE_DIR`);
 `flow-mcp prune -days 30` deletes old terminal runs; diagnostics go to stderr
 (your harness's MCP log), stdout is protocol-only.
+
+## Build from source
+
+Prerequisites: Go ≥ 1.24 and git — nothing else. fluid is stdlib-only (no
+module downloads, no CGO), so builds work fully offline.
+
+```bash
+git clone https://github.com/Cloud-Byte-Consulting/fluid.git
+cd fluid
+
+# verify before building (recommended)
+go vet ./... && go test ./... -race
+
+# build with version stamping
+go build -trimpath \
+  -ldflags "-s -w -X main.version=$(git describe --tags --always) -X main.commit=$(git rev-parse --short HEAD)" \
+  -o flow-mcp ./cmd/flow-mcp
+
+./flow-mcp version                      # e.g. flow-mcp ad6a001 (ad6a001)
+sudo install -m 0755 flow-mcp /usr/local/bin/   # or copy anywhere on PATH
+```
+
+Quick variants:
+
+```bash
+go build -o flow-mcp ./cmd/flow-mcp     # plain build (version reports "dev")
+go install github.com/Cloud-Byte-Consulting/fluid/cmd/flow-mcp@latest   # straight to $GOBIN
+```
+
+Cross-compile for any Iteration 1 platform — the binary is static:
+
+```bash
+CGO_ENABLED=0 GOOS=darwin  GOARCH=arm64 go build -o flow-mcp-darwin-arm64  ./cmd/flow-mcp
+CGO_ENABLED=0 GOOS=linux   GOARCH=amd64 go build -o flow-mcp-linux-amd64   ./cmd/flow-mcp
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o flow-mcp-windows.exe   ./cmd/flow-mcp
+```
+
+Tagged releases (`v*`) run this same matrix in CI and publish binaries with
+checksums — see `.github/workflows/release.yml`.
 
 ## Layout
 
